@@ -10,56 +10,76 @@
         .btn { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
         .btn-rec { background: #ff4b2b; color: white; }
         .btn-stop { background: #444; color: white; display: none; }
-        h2 { font-size: 16px; color: #00d2ff; }
-        p { font-size: 11px; color: #888; }
+        .alert { font-size: 10px; color: #ffeb3b; border: 1px solid #ffeb3b; padding: 10px; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <iframe 
-        id="meet-frame" 
-        src="https://meet.jit.si/CoreHumanAI_Sesion_PhD" 
-        allow="camera; microphone; display-capture; autoplay; clipboard-write"
-    ></iframe>
+    <iframe id="meet-frame" src="https://meet.jit.si/CoreHumanAI_Sesion_PhD" allow="camera; microphone; display-capture; autoplay;"></iframe>
 
     <div id="sidebar">
         <h2>Control de Sesión</h2>
         <button id="btnStart" class="btn btn-rec">🔴 INICIAR GRABACIÓN</button>
         <button id="btnStop" class="btn btn-stop">💾 DESCARGAR VIDEO</button>
         
+        <div class="alert">
+            ⚠️ IMPORTANTE: Al elegir la pestaña, MARCA la casilla "Compartir audio de la pestaña" para capturar a los demás.
+        </div>
+
         <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
         <h2>Evaluación PhD</h2>
-        <p>Sincronizado con MCP v5.5 e IRP.</p>
-        <div style="background:#1a1a1a; padding:10px; border-radius:5px; font-size:10px; border:1px solid #333;">
-            Actores: Jefe vs Operario<br>
-            Capacidad: 50 Usuarios
-        </div>
+        <p style="font-size: 11px; color: #888;">Utilice sus matrices (MCP e IRP) en paralelo.</p>
     </div>
 
     <script>
-        // Lógica de Grabación Local
         let mediaRecorder;
         let recordedChunks = [];
 
         document.getElementById('btnStart').onclick = async () => {
             try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                // Captura el video y el audio del sistema (la pestaña)
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: true, 
+                    audio: { echoCancellation: true, noiseSuppression: true } 
+                });
+
+                // Captura tu propio micrófono por separado
+                const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Mezcla ambas pistas de audio en una sola
+                const context = new AudioContext();
+                const destination = context.createMediaStreamDestination();
+                
+                if (screenStream.getAudioTracks().length > 0) {
+                    context.createMediaStreamSource(screenStream).connect(destination);
+                }
+                context.createMediaStreamSource(micStream).connect(destination);
+
+                // Combina el video de la pantalla con el audio mezclado
+                const combinedStream = new MediaStream([
+                    ...screenStream.getVideoTracks(),
+                    ...destination.stream.getAudioTracks()
+                ]);
+
+                mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp8,opus' });
+                
                 mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
                     const blob = new Blob(recordedChunks, { type: 'video/webm' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Sesion_PhD_Grabada.webm`;
+                    a.download = `Sesion_PhD_${new Date().getTime()}.webm`;
                     a.click();
                     recordedChunks = [];
-                    stream.getTracks().forEach(t => t.stop());
+                    screenStream.getTracks().forEach(t => t.stop());
+                    micStream.getTracks().forEach(t => t.stop());
                 };
+
                 mediaRecorder.start();
                 document.getElementById('btnStart').style.display = 'none';
                 document.getElementById('btnStop').style.display = 'block';
-            } catch (err) { alert("Debe permitir captura de pantalla para grabar."); }
+            } catch (err) { alert("Debe permitir todos los accesos para grabar con audio."); }
         };
 
         document.getElementById('btnStop').onclick = () => {
