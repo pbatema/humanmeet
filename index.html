@@ -2,33 +2,45 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Core Human Meet | PhD Work Psychology</title>
+    <title>Diplomatura Estudios Críticos | Prácticas Sociales</title>
     <style>
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; display: flex; height: 100vh; }
+        :root { --bg: #0d1117; --accent: #58a6ff; --danger: #f85149; --text: #c9d1d9; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; display: flex; height: 100vh; overflow: hidden; }
         #meet-frame { width: 75%; height: 100vh; border: none; }
-        #sidebar { width: 25%; background: #111; padding: 20px; border-left: 1px solid #333; display: flex; flex-direction: column; }
-        .btn { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
-        .btn-rec { background: #ff4b2b; color: white; }
-        .btn-stop { background: #444; color: white; display: none; }
-        .alert { font-size: 10px; color: #ffeb3b; border: 1px solid #ffeb3b; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        #sidebar { width: 25%; background: #161b22; padding: 25px; border-left: 1px solid #30363d; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.5); }
+        .btn { padding: 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.2s; margin-bottom: 15px; font-size: 13px; }
+        .btn-rec { background: var(--danger); color: white; }
+        .btn-rec:hover { background: #da3633; }
+        .btn-stop { background: #30363d; color: var(--text); display: none; }
+        .btn-stop:hover { background: #363d44; }
+        h2 { font-size: 18px; color: var(--accent); margin-top: 0; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .info-box { background: #0d1117; padding: 15px; border-radius: 6px; border: 1px solid #30363d; font-size: 11px; line-height: 1.5; color: #8b949e; }
+        .alert { font-size: 10px; color: #e3b341; margin-top: 15px; font-weight: 500; }
     </style>
 </head>
 <body>
 
-    <iframe id="meet-frame" src="https://meet.jit.si/CoreHumanAI_Sesion_PhD" allow="camera; microphone; display-capture; autoplay;"></iframe>
+    <iframe id="meet-frame" src="https://meet.jit.si/Diplomatura_Estudios_Criticos_LatAm" allow="camera; microphone; display-capture; autoplay;"></iframe>
 
     <div id="sidebar">
-        <h2>Control de Sesión</h2>
+        <h2>Diplomatura de Estudios Avanzados</h2>
+        <p style="font-size: 12px; margin-bottom: 20px;">Estudios Críticos de Prácticas Sociales en Latinoamérica y el Caribe</p>
+        
         <button id="btnStart" class="btn btn-rec">🔴 INICIAR GRABACIÓN</button>
-        <button id="btnStop" class="btn btn-stop">💾 DESCARGAR VIDEO</button>
+        <button id="btnStop" class="btn btn-stop">💾 DETENER Y GUARDAR</button>
         
         <div class="alert">
-            ⚠️ IMPORTANTE: Al elegir la pestaña, MARCA la casilla "Compartir audio de la pestaña" para capturar a los demás.
+            💡 RECUERDE: Al elegir la ventana, marque "Compartir audio de la pestaña" para capturar el debate grupal.
         </div>
 
-        <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
-        <h2>Evaluación PhD</h2>
-        <p style="font-size: 11px; color: #888;">Utilice sus matrices (MCP e IRP) en paralelo.</p>
+        <hr style="border:0; border-top:1px solid #30363d; margin: 25px 0;">
+        
+        <div class="info-box">
+            <b>MODO:</b> Director de Investigación<br>
+            <b>ANÁLISIS:</b> Sujeto y Tecnología<br>
+            <b>CAPACIDAD:</b> 50 Asistentes<br>
+            <b>OPTIMIZACIÓN:</b> Video liviano (H.264)
+        </div>
     </div>
 
     <script>
@@ -37,9 +49,8 @@
 
         document.getElementById('btnStart').onclick = async () => {
             try {
-                // Capturamos pantalla con optimización para video/fluidez
                 const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: { frameRate: 15 }, // Bajamos a 15fps (suficiente para clases y PPT)
+                    video: { frameRate: 15 }, 
                     audio: { echoCancellation: true } 
                 });
 
@@ -57,22 +68,28 @@
                     ...destination.stream.getAudioTracks()
                 ]);
 
-                // AJUSTE DE PESO: Usamos un bitrate de 1Mbps (suficiente para 720p/1080p de lectura)
+                // Optimización de peso para sesiones largas (1 Mbps)
                 const options = { 
                     mimeType: 'video/webm;codecs=h264,opus',
-                    videoBitsPerSecond: 1000000 // 1 Mbps (reduce el peso un 70-80%)
+                    videoBitsPerSecond: 1000000 
                 };
 
                 mediaRecorder = new MediaRecorder(combinedStream, options);
                 
                 mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
+                    const now = new Date();
+                    const dia = String(now.getDate()).padStart(2, '0');
+                    const mes = String(now.getMonth() + 1).padStart(2, '0');
+                    const anio = now.getFullYear();
+                    
                     const blob = new Blob(recordedChunks, { type: 'video/webm' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Diplomatura_Sesion_${new Date().toLocaleDateString()}.webm`;
+                    a.download = `Diplomatura${dia}${mes}${anio}.webm`;
                     a.click();
+                    
                     recordedChunks = [];
                     screenStream.getTracks().forEach(t => t.stop());
                     micStream.getTracks().forEach(t => t.stop());
@@ -81,7 +98,7 @@
                 mediaRecorder.start();
                 document.getElementById('btnStart').style.display = 'none';
                 document.getElementById('btnStop').style.display = 'block';
-            } catch (err) { alert("Error de permisos."); }
+            } catch (err) { alert("Error de permisos de captura."); }
         };
 
         document.getElementById('btnStop').onclick = () => {
