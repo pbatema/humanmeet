@@ -37,16 +37,13 @@
 
         document.getElementById('btnStart').onclick = async () => {
             try {
-                // Captura el video y el audio del sistema (la pestaña)
+                // Capturamos pantalla con optimización para video/fluidez
                 const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: true, 
-                    audio: { echoCancellation: true, noiseSuppression: true } 
+                    video: { frameRate: 15 }, // Bajamos a 15fps (suficiente para clases y PPT)
+                    audio: { echoCancellation: true } 
                 });
 
-                // Captura tu propio micrófono por separado
                 const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                // Mezcla ambas pistas de audio en una sola
                 const context = new AudioContext();
                 const destination = context.createMediaStreamDestination();
                 
@@ -55,13 +52,18 @@
                 }
                 context.createMediaStreamSource(micStream).connect(destination);
 
-                // Combina el video de la pantalla con el audio mezclado
                 const combinedStream = new MediaStream([
                     ...screenStream.getVideoTracks(),
                     ...destination.stream.getAudioTracks()
                 ]);
 
-                mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp8,opus' });
+                // AJUSTE DE PESO: Usamos un bitrate de 1Mbps (suficiente para 720p/1080p de lectura)
+                const options = { 
+                    mimeType: 'video/webm;codecs=h264,opus',
+                    videoBitsPerSecond: 1000000 // 1 Mbps (reduce el peso un 70-80%)
+                };
+
+                mediaRecorder = new MediaRecorder(combinedStream, options);
                 
                 mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
@@ -69,7 +71,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Sesion_PhD_${new Date().getTime()}.webm`;
+                    a.download = `Diplomatura_Sesion_${new Date().toLocaleDateString()}.webm`;
                     a.click();
                     recordedChunks = [];
                     screenStream.getTracks().forEach(t => t.stop());
@@ -79,7 +81,7 @@
                 mediaRecorder.start();
                 document.getElementById('btnStart').style.display = 'none';
                 document.getElementById('btnStop').style.display = 'block';
-            } catch (err) { alert("Debe permitir todos los accesos para grabar con audio."); }
+            } catch (err) { alert("Error de permisos."); }
         };
 
         document.getElementById('btnStop').onclick = () => {
