@@ -7,16 +7,14 @@
     <script src="https://meet.jit.si/external_api.js"></script>
     <style>
         :root { --bg: #0a0a0a; --accent: #00d2ff; --danger: #ff4b2b; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Montserrat', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
         #video-container { width: 75%; background: #000; }
         #sidebar { width: 25%; border-left: 1px solid #333; padding: 20px; display: flex; flex-direction: column; background: #111; }
-        .btn { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; margin-bottom: 10px; }
+        .btn { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
         .btn-rec { background: var(--danger); color: white; }
         .btn-stop { background: #444; color: white; display: none; }
-        .status-tag { font-size: 10px; color: var(--accent); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 20px; }
-        h2 { font-size: 16px; margin: 10px 0; color: var(--accent); }
-        p { font-size: 12px; color: #888; line-height: 1.4; }
-        .footer { margin-top: auto; font-size: 9px; color: #444; text-align: center; }
+        h2 { font-size: 16px; color: var(--accent); margin-top: 0; }
+        p { font-size: 11px; color: #888; }
     </style>
 </head>
 <body>
@@ -24,23 +22,20 @@
     <div id="video-container"></div>
 
     <div id="sidebar">
-        <div class="status-tag">SISTEMA INTEGRAL CONECTADO</div>
         <h2>Control de Sesión</h2>
-        <p>Grabe la intervención para análisis posterior con Python (Whisper/NLP).</p>
+        <p>Grabe para analizar con Python (NLP/Whisper).</p>
         
-        <button id="btnStart" class="btn btn-rec">🔴 Iniciar Grabación Local</button>
-        <button id="btnStop" class="btn btn-stop">💾 Detener y Descargar</button>
+        <button id="btnStart" class="btn btn-rec">🔴 Iniciar Grabación</button>
+        <button id="btnStop" class="btn btn-stop">💾 Descargar Video</button>
 
         <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
         
         <h2>Evaluación PhD</h2>
-        <p>Observe el comportamiento grupal y la resistencia al cambio en tiempo real.</p>
-        <div style="background:#1a1a1a; padding:15px; border-radius:8px; border:1px solid #333; font-size:11px;">
-            Sincronización con Dashboard: <b>Activa</b><br>
-            Capacidad: <b>50 usuarios</b>
+        <p>Use sus archivos de Competencias (MCP) e Incidentes (PRIF) en paralelo.</p>
+        <div style="background:#1a1a1a; padding:10px; border-radius:5px; border:1px solid #333; font-size:10px;">
+            Estado: <b>Sincronizado</b><br>
+            Capacidad: <b>50 Usuarios</b>
         </div>
-
-        <div class="footer">ANALYTICS ENGINE | 2026</div>
     </div>
 
     <script>
@@ -51,12 +46,21 @@
             height: "100%",
             parentNode: document.querySelector('#video-container'),
             lang: 'es',
+            // ESTO HABILITA CÁMARA Y MICRO EN EL IFRAME
+            configOverwrite: {
+                startWithAudioMuted: false,
+                startWithVideoMuted: false,
+                prejoinPageEnabled: false // Salta la pantalla de espera para evitar bloqueos
+            },
             interfaceConfigOverwrite: {
-                TOOLBAR_BUTTONS: ['microphone', 'camera', 'desktop', 'chat', 'raisehand', 'tileview', 'settings']
+                TOOLBAR_BUTTONS: ['microphone', 'camera', 'desktop', 'chat', 'tileview', 'settings']
             }
         };
+
+        // Inicializar la API
         const api = new JitsiMeetExternalAPI(domain, options);
 
+        // Lógica de Grabación Local
         let mediaRecorder;
         let recordedChunks = [];
 
@@ -70,15 +74,15 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Intervencion_${new Date().getTime()}.webm`;
+                    a.download = `Sesion_PhD_${new Date().getTime()}.webm`;
                     a.click();
                     recordedChunks = [];
-                    stream.getTracks().forEach(track => track.stop());
+                    stream.getTracks().forEach(t => t.stop());
                 };
                 mediaRecorder.start();
                 document.getElementById('btnStart').style.display = 'none';
                 document.getElementById('btnStop').style.display = 'block';
-            } catch (err) { alert("Para grabar debes permitir la captura de pantalla."); }
+            } catch (err) { alert("Error: Debe permitir captura de pantalla."); }
         };
 
         document.getElementById('btnStop').onclick = () => {
